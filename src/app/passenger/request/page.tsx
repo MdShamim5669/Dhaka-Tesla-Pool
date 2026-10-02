@@ -4,17 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   MapPin,
-  Users,
   Wallet,
   Banknote,
   Sparkles,
   Loader2,
   ArrowRight,
   AlertCircle,
+  Zap,
 } from "lucide-react";
 import { useZones, useFareEstimate, useCreateRideRequest } from "@/lib/hooks/useRides";
 import { Zone, PaymentMethod } from "@/types/ride";
 import { formatPaisaToBDT } from "@/lib/utils/format";
+import { CorridorRouteMap } from "@/components/shared/CorridorRouteMap";
+import { TeslaCabinView } from "@/components/shared/TeslaCabinView";
 
 const DEFAULT_ZONES: Zone[] = [
   { id: 1, name: "Banani", corridor: "North-East" },
@@ -51,7 +53,7 @@ export default function RequestRidePage() {
   // TanStack Mutation: Request Ride
   const createRideMutation = useCreateRideRequest();
 
-  // Fallback calculation if backend endpoint is in flight
+  // Fallback calculation matching PRD rules (base: ৳50, perKm: ৳18, discount: 20%)
   const estimatedKm = Math.abs(destZoneId - pickupZoneId) * 1.5 + 2;
   const subtotalFallback = 5000 + Math.round(estimatedKm * 1800);
   const discountFallback = Math.floor((subtotalFallback * 2000) / 10000);
@@ -89,201 +91,224 @@ export default function RequestRidePage() {
     );
   };
 
-  const pickupZone = zones.find((z) => z.id === pickupZoneId);
-  const destZone = zones.find((z) => z.id === destZoneId);
+  const pickupZone = zones.find((z) => z.id === pickupZoneId) || DEFAULT_ZONES[0];
+  const destZone = zones.find((z) => z.id === destZoneId) || DEFAULT_ZONES[1];
   const errorMsg =
     validationError || (createRideMutation.isError ? createRideMutation.error?.message : null);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">
-          Request a Tesla Pool
-        </h1>
-        <p className="text-slate-400 mt-1">
-          Lock in your seat and match with commuters traveling in your corridor.
-        </p>
+    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+      {/* Title */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold mb-2">
+            <Zap className="w-3.5 h-3.5 fill-cyan-400" />
+            <span>Tesla &quot;Bullet&quot; Corridor Dispatch</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            Reserve Your Pool Seat
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Pick your corridor zones, select your Tesla seats, and secure automatic 20% pooling savings.
+          </p>
+        </div>
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-sm flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 shrink-0" />
+        <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-2xl text-sm flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Ride Selection Form */}
-        <div className="space-y-6 bg-slate-900/40 border border-slate-800 p-6 rounded-2xl backdrop-blur-sm lg:col-span-2">
-          {/* Pickup & Destination */}
-          <div className="space-y-4">
-            <div>
-              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                <MapPin className="w-4 h-4 text-cyan-400" />
-                Pickup Zone
-              </label>
-              <select
-                value={pickupZoneId}
-                disabled={zonesLoading}
-                onChange={(e) => setPickupZoneId(Number(e.target.value))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 transition text-sm"
-              >
-                {zones.map((zone) => (
-                  <option key={zone.id} value={zone.id}>
-                    {zone.name} ({zone.corridor} Corridor)
-                  </option>
-                ))}
-              </select>
-            </div>
+      {/* Main Grid: Form on Left, Radar & Cabin on Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Booking Controls (7 Cols) */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="glass-panel-elevated p-7 rounded-3xl space-y-6">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span>Route & Vehicle Configuration</span>
+            </h2>
 
-            <div>
-              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                <MapPin className="w-4 h-4 text-emerald-400" />
-                Destination Zone
-              </label>
-              <select
-                value={destZoneId}
-                disabled={zonesLoading}
-                onChange={(e) => setDestZoneId(Number(e.target.value))}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 transition text-sm"
-              >
-                {zones.map((zone) => (
-                  <option key={zone.id} value={zone.id}>
-                    {zone.name} ({zone.corridor} Corridor)
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Corridor Notice */}
-          {pickupZone && destZone && (
-            <div className="p-3 bg-cyan-950/40 border border-cyan-800/40 rounded-xl text-xs text-cyan-300 flex items-center justify-between">
-              <span>Matching Corridor: <strong>{destZone.corridor}</strong></span>
-              <span className="text-slate-400">~{distanceKm.toFixed(1)} km</span>
-            </div>
-          )}
-
-          {/* Seats Selection */}
-          <div>
-            <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-              <Users className="w-4 h-4 text-cyan-400" />
-              Seats Needed (1–3)
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              {[1, 2, 3].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSeats(s)}
-                  className={`py-3 rounded-xl border text-sm font-semibold transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                    seats === s
-                      ? "bg-cyan-500/20 border-cyan-500 text-cyan-300"
-                      : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600"
-                  }`}
+            {/* Zone Pickers */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-300 mb-2">
+                  <MapPin className="w-4 h-4 text-cyan-400" />
+                  Pickup Zone
+                </label>
+                <select
+                  value={pickupZoneId}
+                  disabled={zonesLoading}
+                  onChange={(e) => setPickupZoneId(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-2xl px-4 py-3.5 text-white focus:outline-none focus:border-cyan-400 transition text-sm font-medium shadow-inner"
                 >
-                  <span className="text-base">{s}</span>
-                  <span className="text-xs font-normal opacity-80">
-                    {s === 1 ? "Solo Seat" : `${s} Seats`}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Payment Method */}
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-              Payment Method
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setPaymentMethod("TESLAPAY")}
-                className={`py-3 px-4 rounded-xl border text-sm font-medium transition flex items-center gap-3 cursor-pointer ${
-                  paymentMethod === "TESLAPAY"
-                    ? "bg-cyan-500/20 border-cyan-500 text-cyan-300"
-                    : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600"
-                }`}
-              >
-                <Wallet className="w-5 h-5 text-cyan-400" />
-                <div className="text-left">
-                  <div className="font-semibold text-white">TeslaPay Wallet</div>
-                  <div className="text-xs text-slate-400">Instant cashless debit</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPaymentMethod("CASH")}
-                className={`py-3 px-4 rounded-xl border text-sm font-medium transition flex items-center gap-3 cursor-pointer ${
-                  paymentMethod === "CASH"
-                    ? "bg-cyan-500/20 border-cyan-500 text-cyan-300"
-                    : "bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600"
-                }`}
-              >
-                <Banknote className="w-5 h-5 text-emerald-400" />
-                <div className="text-left">
-                  <div className="font-semibold text-white">Cash</div>
-                  <div className="text-xs text-slate-400">Pay driver at end</div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Fare Summary Card */}
-        <div className="space-y-6">
-          <div className="bg-slate-900/60 border border-slate-800 p-6 rounded-2xl backdrop-blur-xl shadow-xl flex flex-col justify-between h-full">
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                <span className="font-semibold text-white text-lg">Fare Breakdown</span>
-                {estimateLoading && <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />}
+                  {zones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.name} ({zone.corridor} Corridor)
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Pooled Price Highlight */}
-              <div className="my-6 p-4 rounded-xl bg-gradient-to-br from-cyan-950/60 to-emerald-950/40 border border-cyan-500/30">
-                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold mb-1">
+              <div>
+                <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-300 mb-2">
+                  <MapPin className="w-4 h-4 text-emerald-400" />
+                  Destination Zone
+                </label>
+                <select
+                  value={destZoneId}
+                  disabled={zonesLoading}
+                  onChange={(e) => setDestZoneId(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-2xl px-4 py-3.5 text-white focus:outline-none focus:border-emerald-400 transition text-sm font-medium shadow-inner"
+                >
+                  {zones.map((zone) => (
+                    <option key={zone.id} value={zone.id}>
+                      {zone.name} ({zone.corridor} Corridor)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Interactive Tesla Cabin Seat Selector */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                Passenger Seats (Capacity: 3 Max)
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[1, 2, 3].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSeats(s)}
+                    className={`py-3.5 rounded-2xl border text-sm font-bold transition flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                      seats === s
+                        ? "bg-gradient-to-b from-cyan-500/20 to-emerald-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400"
+                        : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-lg font-black">{s}</span>
+                    <span className="text-[11px] font-normal opacity-80">
+                      {s === 1 ? "1 Seat (Solo)" : `${s} Seats`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment Options */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                Settlement Method
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("TESLAPAY")}
+                  className={`p-4 rounded-2xl border text-sm font-medium transition flex items-center gap-3.5 cursor-pointer ${
+                    paymentMethod === "TESLAPAY"
+                      ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.25)] ring-1 ring-cyan-400"
+                      : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold text-white">TeslaPay Wallet</div>
+                    <div className="text-xs text-slate-400">Cashless instant debit</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("CASH")}
+                  className={`p-4 rounded-2xl border text-sm font-medium transition flex items-center gap-3.5 cursor-pointer ${
+                    paymentMethod === "CASH"
+                      ? "bg-emerald-500/15 border-emerald-400 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400"
+                      : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+                    <Banknote className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold text-white">Cash Direct</div>
+                    <div className="text-xs text-slate-400">Pay driver at drop-off</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Price Breakdown Banner */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-cyan-950/40 to-slate-900 border border-cyan-500/30 shadow-xl flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>If Pooled (2+ Passengers)</span>
+                  <span>Locked Pooled Rate</span>
+                  {estimateLoading && <Loader2 className="w-3 h-3 animate-spin text-cyan-400 ml-1" />}
                 </div>
-                <div className="text-3xl font-extrabold text-white">
+                <div className="text-4xl font-black text-white tracking-tight">
                   {formatPaisaToBDT(pooledFarePaisa)}
                 </div>
                 <div className="text-xs text-slate-400 mt-1">
-                  Includes 20% pooling discount applied at trip start
+                  Standard solo fare:{" "}
+                  <span className="line-through text-slate-500">
+                    {formatPaisaToBDT(soloFarePaisa)}
+                  </span>{" "}
+                  (Save 20%)
                 </div>
               </div>
 
-              {/* Standard Price */}
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between text-slate-400">
-                  <span>Solo / Unpooled Estimate:</span>
-                  <span className="text-slate-200 line-through">
-                    {formatPaisaToBDT(soloFarePaisa)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Seats:</span>
-                  <span className="text-slate-200">{seats}</span>
-                </div>
-                <div className="flex justify-between text-slate-400">
-                  <span>Estimated Distance:</span>
-                  <span className="text-slate-200">{distanceKm.toFixed(1)} km</span>
+              <div className="text-right">
+                <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-extrabold rounded-full">
+                  20% OFF
+                </span>
+                <div className="text-[11px] text-slate-400 mt-1">
+                  {seats} Seat{seats > 1 ? "s" : ""}
                 </div>
               </div>
             </div>
 
+            {/* Confirm Button */}
             <button
               onClick={handleBooking}
               disabled={createRideMutation.isPending || pickupZoneId === destZoneId}
-              className="w-full mt-6 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-400 hover:to-cyan-300 text-slate-950 font-semibold py-3.5 rounded-xl shadow-lg shadow-cyan-500/20 transition disabled:opacity-50 text-sm cursor-pointer"
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 font-black text-base shadow-[0_0_35px_rgba(6,182,212,0.4)] hover:scale-[1.01] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
-              {createRideMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              {createRideMutation.isPending ? "Requesting Tesla..." : "Confirm Ride Request"}
-              {!createRideMutation.isPending && <ArrowRight className="w-4 h-4" />}
+              {createRideMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Locking Tesla & Fares...</span>
+                </>
+              ) : (
+                <>
+                  <span>Confirm Ride Request</span>
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </button>
           </div>
+        </div>
+
+        {/* Right Column: Visual Radar & Cabin Simulator (5 Cols) */}
+        <div className="lg:col-span-5 space-y-6">
+          <CorridorRouteMap
+            pickupZone={pickupZone}
+            destZone={destZone}
+            distanceKm={distanceKm}
+            discountPercentage={20}
+          />
+          <TeslaCabinView
+            capacity={3}
+            occupiedSeats={0}
+            selectedSeats={seats}
+            driverName="Jashim"
+            interactive={true}
+            onSelectSeats={(s) => setSeats(s)}
+          />
         </div>
       </div>
     </div>
