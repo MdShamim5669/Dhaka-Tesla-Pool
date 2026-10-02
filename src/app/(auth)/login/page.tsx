@@ -1,17 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Car, Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Car, Loader2, Zap } from "lucide-react";
 import { useLoginMutation } from "@/lib/hooks/useAuthMutation";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const loginMutation = useLoginMutation();
+
+  const handleDemoFill = (demoEmail: string, demoPass: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    loginMutation.mutate(
+      { email: demoEmail, password: demoPass },
+      {
+        onSuccess: (data) => {
+          if (redirectUrl) {
+            router.push(redirectUrl);
+          } else if (data.user.role === "DRIVER") {
+            router.push("/driver");
+          } else {
+            router.push("/passenger/request");
+          }
+        },
+      }
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +41,9 @@ export default function LoginPage() {
       { email, password },
       {
         onSuccess: (data) => {
-          if (data.user.role === "DRIVER") {
+          if (redirectUrl) {
+            router.push(redirectUrl);
+          } else if (data.user.role === "DRIVER") {
             router.push("/driver");
           } else {
             router.push("/passenger/request");
@@ -32,16 +56,54 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-950">
       <div className="w-full max-w-md bg-slate-900/60 border border-slate-800 p-8 rounded-2xl backdrop-blur-xl shadow-2xl">
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-6">
           <div className="p-3 bg-cyan-500/10 text-cyan-400 rounded-xl mb-3">
             <Car className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Sign In to Dhaka Tesla Pool
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Enter your credentials to access your account
+          <p className="text-sm text-slate-400 mt-1 text-center">
+            Enter credentials or tap a 1-click Demo Account below
           </p>
+        </div>
+
+        {/* 1-Click Quick Demo Accounts */}
+        <div className="mb-6 p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/80">
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1 text-cyan-400">
+              <Zap className="w-3.5 h-3.5 fill-cyan-400" />
+              1-Click Instant Demo
+            </span>
+            <span className="text-[10px] text-slate-500">Tap to auto-sign in</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={loginMutation.isPending}
+              onClick={() => handleDemoFill("nusrat@example.com", "password123")}
+              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-left transition cursor-pointer disabled:opacity-50"
+            >
+              <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>Nusrat (Passenger)</span>
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">৳500 TeslaPay • Ready</div>
+            </button>
+
+            <button
+              type="button"
+              disabled={loginMutation.isPending}
+              onClick={() => handleDemoFill("jashim@tesla.bd", "password123")}
+              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-left transition cursor-pointer disabled:opacity-50"
+            >
+              <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <span>Jashim (Tesla Pilot)</span>
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Model 3 Bullet</div>
+            </button>
+          </div>
         </div>
 
         {loginMutation.isError && (
@@ -97,5 +159,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

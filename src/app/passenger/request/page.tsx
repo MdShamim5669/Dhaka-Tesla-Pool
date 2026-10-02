@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
@@ -22,8 +23,11 @@ import {
   Star,
   Users,
   BatteryCharging,
+  X,
 } from "lucide-react";
 import { useZones, useFareEstimate, useCreateRideRequest } from "@/lib/hooks/useRides";
+import { useAuth } from "@/providers/AuthProvider";
+import { useLoginMutation } from "@/lib/hooks/useAuthMutation";
 import { Zone, PaymentMethod } from "@/types/ride";
 import { formatPaisaToBDT } from "@/lib/utils/format";
 import { TeslaCabinView } from "@/components/shared/TeslaCabinView";
@@ -67,6 +71,11 @@ function RequestRideInner() {
   const [seats, setSeats] = useState<number>(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("TESLAPAY");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+
+  // Auth context & mutations
+  const { user, token } = useAuth();
+  const loginMutation = useLoginMutation();
 
   // TanStack Query: Fetch zones
   const { data: zonesData, isLoading: zonesLoading } = useZones();
@@ -115,13 +124,7 @@ function RequestRideInner() {
     setSeats(s);
   };
 
-  const handleBooking = async () => {
-    if (pickupZoneId === destZoneId) {
-      setValidationError("Pickup and destination zones must be different");
-      return;
-    }
-    setValidationError(null);
-
+  const executeRideCreation = () => {
     const idempotencyKey = `dtp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
     createRideMutation.mutate(
@@ -142,8 +145,48 @@ function RequestRideInner() {
           }
           router.push("/passenger/active");
         },
+        onError: (err: Error) => {
+          if (
+            err.message?.toLowerCase().includes("authorization") ||
+            err.message?.toLowerCase().includes("token")
+          ) {
+            setShowAuthModal(true);
+          }
+        },
       }
     );
+  };
+
+  const handleBooking = async () => {
+    if (pickupZoneId === destZoneId) {
+      setValidationError("Pickup and destination zones must be different");
+      return;
+    }
+    setValidationError(null);
+
+    // If user is not authenticated, prompt sign-in modal
+    if (!token) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    executeRideCreation();
+  };
+
+  const handleInstantDemoLogin = async () => {
+    try {
+      await loginMutation.mutateAsync(
+        { email: "nusrat@example.com", password: "password123" },
+        {
+          onSuccess: () => {
+            setShowAuthModal(false);
+            executeRideCreation();
+          },
+        }
+      );
+    } catch {
+      // Handled in mutation state
+    }
   };
 
   const errorMsg =
@@ -154,9 +197,26 @@ function RequestRideInner() {
       {/* Top Cyber Command Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-slate-950 p-6 rounded-3xl border border-slate-800 shadow-2xl backdrop-blur-xl">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>FLEET STATUS: ACTIVE • 10 DHAKA CORRIDORS ONLINE</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>FLEET STATUS: ACTIVE • 10 DHAKA CORRIDORS ONLINE</span>
+            </div>
+            {user ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{user.name} ({user.role})</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAuthModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 text-xs font-bold transition cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5 fill-cyan-400" />
+                <span>Sign In / Demo Login</span>
+              </button>
+            )}
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight flex items-center gap-3">
             <span>Reserve Your Tesla Seat</span>
@@ -202,9 +262,26 @@ function RequestRideInner() {
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-2xl text-sm flex items-center gap-3 animate-in fade-in">
-          <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
-          <span className="font-semibold">{errorMsg}</span>
+        <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-2xl text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
+            <span className="font-semibold">
+              {errorMsg.toLowerCase().includes("authorization") ||
+              errorMsg.toLowerCase().includes("token")
+                ? "Passenger login required to confirm ride."
+                : errorMsg}
+            </span>
+          </div>
+          {(errorMsg.toLowerCase().includes("authorization") ||
+            errorMsg.toLowerCase().includes("token") ||
+            !token) && (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-4 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs transition cursor-pointer self-start sm:self-auto shrink-0 shadow-md"
+            >
+              Sign In to Book
+            </button>
+          )}
         </div>
       )}
 
@@ -579,6 +656,77 @@ function RequestRideInner() {
           />
         </div>
       </div>
+
+      {/* Passenger Authentication Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative space-y-6">
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                <Car className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-white">Sign In to Reserve</h3>
+                <p className="text-xs text-slate-400">Dhaka Tesla Pool Booking</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              To reserve a seat in the Tesla Model 3 Bullet fleet and lock your 20% discount, an authenticated passenger account is required.
+            </p>
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                disabled={loginMutation.isPending}
+                onClick={handleInstantDemoLogin}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 via-emerald-400 to-cyan-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 font-black text-xs sm:text-sm shadow-[0_0_20px_rgba(6,182,212,0.3)] transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                {loginMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Signing in as Nusrat Jahan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 fill-slate-950" />
+                    <span>1-Click Demo Login (Nusrat • ৳500 balance)</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center gap-3 my-2 text-slate-600 text-[10px] uppercase font-bold">
+                <div className="flex-1 h-px bg-slate-800" />
+                <span>or continue with email</span>
+                <div className="flex-1 h-px bg-slate-800" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/login?redirect=/passenger/request"
+                  className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 border border-slate-700 text-center"
+                >
+                  <span>Sign In</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                <Link
+                  href="/register"
+                  className="py-2.5 px-3 rounded-xl bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 border border-slate-700/80 text-center"
+                >
+                  <span>Register</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
