@@ -24,8 +24,9 @@ import { GoogleMapView } from "@/components/shared/GoogleMapView";
 import { TeslaReserveSection } from "@/components/shared/TeslaReserveSection";
 import { DriveWithUsSection } from "@/components/shared/DriveWithUsSection";
 import { Typewriter } from "@/components/shared/Typewriter";
+import { useZones, useFareEstimate } from "@/lib/hooks/useRides";
 
-const ZONES = [
+const FALLBACK_ZONES = [
   { id: 1, name: "Banani", corridor: "North-East" },
   { id: 2, name: "Mohakhali", corridor: "North-East" },
   { id: 3, name: "Gulshan 1", corridor: "North-East" },
@@ -33,8 +34,8 @@ const ZONES = [
   { id: 5, name: "Baridhara", corridor: "North-East" },
   { id: 6, name: "Uttara", corridor: "North" },
   { id: 7, name: "Airport", corridor: "North" },
-  { id: 8, name: "Mirpur", corridor: "West" },
-  { id: 9, name: "Dhanmondi", corridor: "West" },
+  { id: 8, name: "Dhanmondi", corridor: "West" },
+  { id: 9, name: "Farmgate", corridor: "West" },
   { id: 10, name: "Bashundhara", corridor: "East" },
 ];
 
@@ -48,16 +49,26 @@ export default function Home() {
   const [showTelemetryDrawer, setShowTelemetryDrawer] = useState<boolean>(false);
   const [mapTab, setMapTab] = useState<"google" | "radar">("google");
 
-  // Exact hand-verified pricing calculation from PRD (base: ৳50, perKm: ৳18, 20% discount)
+  // Live data fetching from Render backend
+  const { data: zonesData } = useZones();
+  const zones = zonesData && zonesData.length > 0 ? zonesData : FALLBACK_ZONES;
+
+  const { data: estimateData } = useFareEstimate({
+    pickupZoneId,
+    destZoneId,
+    seats,
+  });
+
+  // Dynamic pricing calculation from backend with PRD fallback
   const estimatedKm = Math.abs(destZoneId - pickupZoneId) * 1.5 + 2;
   const subtotal = 5000 + Math.round(estimatedKm * 1800);
   const discount = Math.floor((subtotal * 2000) / 10000);
-  const soloFarePaisa = subtotal * seats;
-  const pooledFarePaisa = (subtotal - discount) * seats;
+  const soloFarePaisa = estimateData?.soloFarePaisa ?? subtotal * seats;
+  const pooledFarePaisa = estimateData?.pooledFarePaisa ?? (subtotal - discount) * seats;
   const finalDisplayFare = rideType === "POOL" ? pooledFarePaisa : soloFarePaisa;
 
-  const pickupZone = ZONES.find((z) => z.id === pickupZoneId) || ZONES[0];
-  const destZone = ZONES.find((z) => z.id === destZoneId) || ZONES[1];
+  const pickupZone = zones.find((z) => z.id === pickupZoneId) || zones[0];
+  const destZone = zones.find((z) => z.id === destZoneId) || zones[1];
 
   const applyPreset = (pId: number, dId: number, s: number) => {
     setPickupZoneId(pId);
@@ -247,7 +258,7 @@ export default function Home() {
                   onChange={(e) => setPickupZoneId(Number(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-slate-800 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
                 >
-                  {ZONES.map((zone) => (
+                  {zones.map((zone) => (
                     <option key={zone.id} value={zone.id}>
                       {zone.name} ({zone.corridor} Corridor)
                     </option>
@@ -268,7 +279,7 @@ export default function Home() {
                   onChange={(e) => setDestZoneId(Number(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-slate-800 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
                 >
-                  {ZONES.map((zone) => (
+                  {zones.map((zone) => (
                     <option key={zone.id} value={zone.id}>
                       {zone.name} ({zone.corridor} Corridor)
                     </option>
