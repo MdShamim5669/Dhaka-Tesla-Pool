@@ -183,37 +183,65 @@ export default function DriverPoolPage() {
               for all passengers and applies the 20% discount.
             </p>
 
-            <div className="space-y-3 pt-2">
-              {/* Mark Arrival */}
+            {/* State Machine Status Tracker */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs">
+              <span className="text-slate-400 font-medium">Lifecycle Stage:</span>
+              <span className="font-extrabold uppercase px-2.5 py-0.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                {pool.status}
+              </span>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {/* Step 1: Mark Arrival */}
               {pool.status === "ACCEPTED" && (
-                <button
-                  onClick={() => handleAction("arrive")}
-                  disabled={poolActionMutation.isPending}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-cyan-300 hover:from-cyan-300 hover:to-cyan-200 text-slate-950 font-black text-sm shadow-[0_0_25px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2 transition hover:scale-[1.02] cursor-pointer"
-                >
-                  {poolActionMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Navigation className="w-4 h-4 fill-slate-950" />
-                  )}
-                  <span>Mark Arrived at Pickup</span>
-                </button>
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-bold text-cyan-400 uppercase tracking-wider">
+                    Recommended Step 1:
+                  </div>
+                  <button
+                    onClick={() => handleAction("arrive")}
+                    disabled={poolActionMutation.isPending}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-cyan-300 hover:from-cyan-300 hover:to-cyan-200 text-slate-950 font-black text-sm shadow-[0_0_25px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2 transition hover:scale-[1.02] cursor-pointer"
+                  >
+                    {poolActionMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Navigation className="w-4 h-4 fill-slate-950" />
+                    )}
+                    <span>Mark Arrived at Pickup</span>
+                  </button>
+                </div>
               )}
 
-              {/* Start Trip (Locks Fares) */}
+              {/* Step 2: Start Trip (Locks Fares) */}
               {(pool.status === "ACCEPTED" || pool.status === "DRIVER_ARRIVED") && (
-                <button
-                  onClick={() => handleAction("start")}
-                  disabled={poolActionMutation.isPending}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-slate-950 font-black text-sm shadow-[0_0_30px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2 transition hover:scale-[1.02] cursor-pointer"
-                >
-                  {poolActionMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Play className="w-4 h-4 fill-slate-950" />
+                <div className="space-y-1.5 pt-1">
+                  {pool.status === "DRIVER_ARRIVED" && (
+                    <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                      Step 2: Passengers Boarded
+                    </div>
                   )}
-                  <span>Start Trip (Lock Fares & Discount)</span>
-                </button>
+                  <button
+                    onClick={() => handleAction("start")}
+                    disabled={poolActionMutation.isPending}
+                    className={`w-full py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition hover:scale-[1.02] cursor-pointer ${
+                      pool.status === "DRIVER_ARRIVED"
+                        ? "bg-gradient-to-r from-emerald-400 to-teal-300 text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.4)]"
+                        : "bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/40"
+                    }`}
+                  >
+                    {poolActionMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Play className="w-4 h-4 fill-current" />
+                    )}
+                    <span>
+                      {pool.status === "ACCEPTED"
+                        ? "Start Trip Directly (Lock Fares & Discount)"
+                        : "Start Trip (Lock Fares & Discount)"}
+                    </span>
+                  </button>
+                </div>
               )}
 
               {/* Complete Trip */}
