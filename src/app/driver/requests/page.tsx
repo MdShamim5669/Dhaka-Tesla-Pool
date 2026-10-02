@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Inbox,
@@ -11,79 +10,29 @@ import {
   RefreshCw,
   AlertCircle,
 } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
-import { RideRequest } from "@/types/ride";
+import { useDriverRequests, useAcceptRideRequest } from "@/lib/hooks/useDriver";
 import { formatPaisaToBDT } from "@/lib/utils/format";
 
 export default function DriverRequestsPage() {
   const router = useRouter();
-  const [requests, setRequests] = useState<RideRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [acceptingId, setAcceptingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchRequests = async () => {
-    try {
-      const res = await apiClient.get("/driver/requests");
-      setRequests(res.data.data || []);
-    } catch {
-      // Seed demonstration requests (Nusrat & Rafiq compatible example from PRD)
-      setRequests([
-        {
-          id: "req-nusrat-1",
-          passengerId: "user-nusrat",
-          pickupZoneId: 1, // Banani
-          destZoneId: 2, // Mohakhali
-          seats: 1,
-          status: "REQUESTED",
-          distanceM: 3000,
-          estimatedFarePaisa: 10400,
-          paymentMethod: "TESLAPAY",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: "req-rafiq-2",
-          passengerId: "user-rafiq",
-          pickupZoneId: 1, // Banani (Same pickup!)
-          destZoneId: 3, // Gulshan 1 (Same North-East corridor!)
-          seats: 1,
-          status: "REQUESTED",
-          distanceM: 4000,
-          estimatedFarePaisa: 12200,
-          paymentMethod: "CASH",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  // TanStack Query: Live polling for incoming requests
+  const { data: requests = [], isLoading, isError, error, refetch } = useDriverRequests();
+  const acceptMutation = useAcceptRideRequest();
+
+  const handleAccept = (rideId: string) => {
+    acceptMutation.mutate(rideId, {
+      onSuccess: () => {
+        router.push("/driver/pool");
+      },
+    });
   };
 
-  useEffect(() => {
-    fetchRequests();
-    const interval = setInterval(fetchRequests, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleAccept = async (rideId: string) => {
-    setAcceptingId(rideId);
-    setError(null);
-
-    try {
-      await apiClient.post(`/driver/requests/${rideId}/accept`);
-      router.push("/driver/pool");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Could not accept request. Seat capacity might be full.");
-      }
-    } finally {
-      setAcceptingId(null);
-    }
-  };
+  const errorMessage = isError
+    ? error?.message
+    : acceptMutation.isError
+    ? acceptMutation.error?.message
+    : null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -98,22 +47,22 @@ export default function DriverRequestsPage() {
         </div>
 
         <button
-          onClick={fetchRequests}
-          className="p-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-xl transition"
+          onClick={() => refetch()}
+          className="p-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-xl transition cursor-pointer"
           title="Refresh Feed"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
-      {error && (
+      {errorMessage && (
         <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-sm flex items-center gap-2">
           <AlertCircle className="w-5 h-5 shrink-0" />
-          <span>{error}</span>
+          <span>{errorMessage}</span>
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center items-center py-20 text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
         </div>
@@ -168,10 +117,10 @@ export default function DriverRequestsPage() {
 
                 <button
                   onClick={() => handleAccept(req.id)}
-                  disabled={acceptingId === req.id}
+                  disabled={acceptMutation.isPending}
                   className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl transition text-sm disabled:opacity-50 cursor-pointer shadow-lg shadow-emerald-500/20"
                 >
-                  {acceptingId === req.id ? (
+                  {acceptMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Check className="w-4 h-4" />

@@ -4,51 +4,33 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Car, Loader2 } from "lucide-react";
-import { useAuth } from "@/providers/AuthProvider";
-import { apiClient } from "@/lib/api/client";
+import { useRegisterMutation } from "@/lib/hooks/useAuthMutation";
 import { UserRole } from "@/types/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("PASSENGER");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+
+  const registerMutation = useRegisterMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const res = await apiClient.post("/auth/register", {
-        name,
-        email,
-        phone,
-        password,
-        role,
-      });
-      const { user, accessToken } = res.data.data;
-      login(accessToken, user);
-
-      if (user.role === "DRIVER") {
-        router.push("/driver");
-      } else {
-        router.push("/passenger/request");
+    registerMutation.mutate(
+      { name, email, phone, password, role },
+      {
+        onSuccess: (data) => {
+          if (data.user.role === "DRIVER") {
+            router.push("/driver");
+          } else {
+            router.push("/passenger/request");
+          }
+        },
       }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Registration failed");
-      }
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   return (
@@ -66,9 +48,9 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {error && (
+        {registerMutation.isError && (
           <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-lg text-sm">
-            {error}
+            {registerMutation.error?.message || "Registration failed"}
           </div>
         )}
 
@@ -138,7 +120,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setRole("PASSENGER")}
-                className={`py-2 px-3 rounded-lg text-sm font-medium border transition ${
+                className={`py-2 px-3 rounded-lg text-sm font-medium border transition cursor-pointer ${
                   role === "PASSENGER"
                     ? "bg-cyan-500/20 border-cyan-500 text-cyan-300"
                     : "bg-slate-800/50 border-slate-700 text-slate-400"
@@ -149,7 +131,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setRole("DRIVER")}
-                className={`py-2 px-3 rounded-lg text-sm font-medium border transition ${
+                className={`py-2 px-3 rounded-lg text-sm font-medium border transition cursor-pointer ${
                   role === "DRIVER"
                     ? "bg-cyan-500/20 border-cyan-500 text-cyan-300"
                     : "bg-slate-800/50 border-slate-700 text-slate-400"
@@ -162,11 +144,11 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full mt-2 flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold py-2.5 rounded-lg transition disabled:opacity-50 text-sm"
+            disabled={registerMutation.isPending}
+            className="w-full mt-2 flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold py-2.5 rounded-lg transition disabled:opacity-50 text-sm cursor-pointer"
           >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? "Registering..." : "Create Account"}
+            {registerMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            {registerMutation.isPending ? "Registering..." : "Create Account"}
           </button>
         </form>
 

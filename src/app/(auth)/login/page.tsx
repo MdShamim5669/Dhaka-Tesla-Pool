@@ -4,41 +4,29 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Car, Loader2 } from "lucide-react";
-import { useAuth } from "@/providers/AuthProvider";
-import { apiClient } from "@/lib/api/client";
+import { useLoginMutation } from "@/lib/hooks/useAuthMutation";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+
+  const loginMutation = useLoginMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      const res = await apiClient.post("/auth/login", { email, password });
-      const { user, accessToken } = res.data.data;
-      login(accessToken, user);
-
-      if (user.role === "DRIVER") {
-        router.push("/driver");
-      } else {
-        router.push("/passenger/request");
+    loginMutation.mutate(
+      { email, password },
+      {
+        onSuccess: (data) => {
+          if (data.user.role === "DRIVER") {
+            router.push("/driver");
+          } else {
+            router.push("/passenger/request");
+          }
+        },
       }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Invalid credentials or server error");
-      }
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   return (
@@ -56,9 +44,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {error && (
+        {loginMutation.isError && (
           <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-lg text-sm">
-            {error}
+            {loginMutation.error?.message || "Invalid credentials"}
           </div>
         )}
 
@@ -93,11 +81,11 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full mt-2 flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold py-2.5 rounded-lg transition disabled:opacity-50 text-sm"
+            disabled={loginMutation.isPending}
+            className="w-full mt-2 flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold py-2.5 rounded-lg transition disabled:opacity-50 text-sm cursor-pointer"
           >
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {loading ? "Signing in..." : "Sign In"}
+            {loginMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loginMutation.isPending ? "Signing in..." : "Sign In"}
           </button>
         </form>
 

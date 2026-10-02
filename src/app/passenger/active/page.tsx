@@ -5,16 +5,16 @@ import Link from "next/link";
 import {
   Car,
   CheckCircle2,
-  Clock,
   Navigation,
   XCircle,
   AlertCircle,
   Loader2,
   MapPin,
   RefreshCw,
+  Clock,
 } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
-import { RideRequest, RideStatus } from "@/types/ride";
+import { useRideDetail, useCancelRide } from "@/lib/hooks/useRides";
+import { RideStatus } from "@/types/ride";
 import { formatPaisaToBDT } from "@/lib/utils/format";
 
 const STATUS_STEPS: { status: RideStatus; label: string; desc: string }[] = [
@@ -26,80 +26,39 @@ const STATUS_STEPS: { status: RideStatus; label: string; desc: string }[] = [
 ];
 
 export default function ActiveTripPage() {
-  const [ride, setRide] = useState<RideRequest | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [cancelling, setCancelling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchActiveRide = async () => {
-    try {
-      const activeId = localStorage.getItem("dtp_active_ride_id");
-      if (activeId) {
-        const res = await apiClient.get(`/rides/${activeId}`);
-        setRide(res.data.data);
-      } else {
-        // Query passenger's most recent active ride
-        const res = await apiClient.get("/rides?limit=1");
-        if (res.data?.data && res.data.data.length > 0) {
-          const latest = res.data.data[0];
-          if (["REQUESTED", "MATCHED", "DRIVER_ARRIVED", "STARTED"].includes(latest.status)) {
-            setRide(latest);
-            localStorage.setItem("dtp_active_ride_id", latest.id);
-          }
-        }
-      }
-    } catch {
-      // Mock active ride for preview if API not yet populated
-      setRide({
-        id: "demo-ride-1",
-        passengerId: "p1",
-        pickupZoneId: 1,
-        destZoneId: 2,
-        seats: 1,
-        status: "MATCHED",
-        distanceM: 3000,
-        estimatedFarePaisa: 10400,
-        finalFarePaisa: 8320,
-        paymentMethod: "TESLAPAY",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [activeRideId, setActiveRideId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchActiveRide();
-    const interval = setInterval(fetchActiveRide, 5000);
-    return () => clearInterval(interval);
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("dtp_active_ride_id");
+      if (stored) {
+        setActiveRideId(stored);
+      }
+    }
   }, []);
 
+  // TanStack Query: Live ride details with automatic polling
+  const { data: ride, isLoading, isError, error, refetch } = useRideDetail(activeRideId);
+  const cancelRideMutation = useCancelRide();
+
   const handleCancel = async () => {
-    if (!ride) return;
+    if (!activeRideId) return;
     if (!confirm("Are you sure you want to cancel this ride?")) return;
 
-    setCancelling(true);
-    try {
-      await apiClient.post(`/rides/${ride.id}/cancel`);
-      localStorage.removeItem("dtp_active_ride_id");
-      fetchActiveRide();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to cancel ride.");
-      }
-    } finally {
-      setCancelling(false);
-    }
+    cancelRideMutation.mutate(activeRideId, {
+      onSuccess: () => {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("dtp_active_ride_id");
+        }
+      },
+    });
   };
 
-  if (loading) {
+  if (isLoading && activeRideId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-400 gap-3">
         <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-        <p>Loading active trip details...</p>
+        <p>Loading active trip details from backend...</p>
       </div>
     );
   }
@@ -116,7 +75,7 @@ export default function ActiveTripPage() {
         </p>
         <Link
           href="/passenger/request"
-          className="mt-6 inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold px-5 py-2.5 rounded-xl transition text-sm"
+          className="mt-6 inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold px-5 py-2.5 rounded-xl transition text-sm cursor-pointer"
         >
           Book a Ride
         </Link>
@@ -126,6 +85,11 @@ export default function ActiveTripPage() {
 
   const currentStepIndex = STATUS_STEPS.findIndex((s) => s.status === ride.status);
   const canCancel = ["REQUESTED", "MATCHED", "DRIVER_ARRIVED"].includes(ride.status);
+  const displayError = isError
+    ? error?.message
+    : cancelRideMutation.isError
+    ? cancelRideMutation.error?.message
+    : null;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -139,18 +103,18 @@ export default function ActiveTripPage() {
           </p>
         </div>
         <button
-          onClick={fetchActiveRide}
-          className="p-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg transition"
+          onClick={() => refetch()}
+          className="p-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg transition cursor-pointer"
           title="Refresh"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
-      {error && (
+      {displayError && (
         <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-sm flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
+          <span>{displayError}</span>
         </div>
       )}
 
@@ -236,10 +200,14 @@ export default function ActiveTripPage() {
         {canCancel && (
           <button
             onClick={handleCancel}
-            disabled={cancelling}
-            className="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50"
+            disabled={cancelRideMutation.isPending}
+            className="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50 cursor-pointer"
           >
-            {cancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+            {cancelRideMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <XCircle className="w-4 h-4" />
+            )}
             Cancel Trip
           </button>
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Wallet,
@@ -10,62 +10,42 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
+import { useWallet, useInitTopUp } from "@/lib/hooks/useWallet";
 import { formatPaisaToBDT } from "@/lib/utils/format";
 
 function WalletContent() {
   const searchParams = useSearchParams();
-  const [balancePaisa, setBalancePaisa] = useState<number>(50000); // Default ৳500.00
   const [topUpAmountBDT, setTopUpAmountBDT] = useState<number>(500);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const statusParam = searchParams.get("status");
   const tranIdParam = searchParams.get("tranId");
 
-  useEffect(() => {
-    apiClient
-      .get("/wallet")
-      .then((res) => {
-        if (res.data?.data?.balancePaisa !== undefined) {
-          setBalancePaisa(res.data.data.balancePaisa);
-        }
-      })
-      .catch(() => {
-        // Fallback default
-      });
-  }, [statusParam]);
+  const { data: walletData, isLoading: walletLoading } = useWallet();
+  const balancePaisa = walletData?.balancePaisa ?? 50000;
+
+  // TanStack Mutation: SSLCommerz Top-Up
+  const topUpMutation = useInitTopUp();
 
   const handleInitTopUp = async () => {
     if (topUpAmountBDT < 10 || topUpAmountBDT > 25000) {
-      setError("Top-up amount must be between ৳10 and ৳25,000");
+      setValidationError("Top-up amount must be between ৳10 and ৳25,000");
       return;
     }
+    setValidationError(null);
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const amountPaisa = Math.round(topUpAmountBDT * 100);
-      const res = await apiClient.post("/wallet/topup/init", { amountPaisa });
-      const { paymentUrl } = res.data.data;
-
-      if (paymentUrl) {
-        // Redirect passenger to SSLCommerz Hosted Checkout
-        window.location.href = paymentUrl;
-      } else {
-        throw new Error("Invalid response from payment gateway");
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Unable to initiate top-up. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
+    const amountPaisa = Math.round(topUpAmountBDT * 100);
+    topUpMutation.mutate(amountPaisa, {
+      onSuccess: (data) => {
+        if (data.paymentUrl) {
+          window.location.href = data.paymentUrl;
+        }
+      },
+    });
   };
+
+  const errorMessage =
+    validationError || (topUpMutation.isError ? topUpMutation.error?.message : null);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -103,9 +83,9 @@ function WalletContent() {
         </div>
       )}
 
-      {error && (
+      {errorMessage && (
         <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-sm">
-          {error}
+          {errorMessage}
         </div>
       )}
 
@@ -118,7 +98,14 @@ function WalletContent() {
               <span>Available Balance</span>
             </div>
             <div className="text-5xl font-extrabold text-white tracking-tight">
-              {formatPaisaToBDT(balancePaisa)}
+              {walletLoading ? (
+                <div className="flex items-center gap-2 text-2xl text-slate-400">
+                  <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+                  <span>Fetching balance...</span>
+                </div>
+              ) : (
+                formatPaisaToBDT(balancePaisa)
+              )}
             </div>
           </div>
 
@@ -150,7 +137,7 @@ function WalletContent() {
                 key={amt}
                 type="button"
                 onClick={() => setTopUpAmountBDT(amt)}
-                className={`py-3 rounded-xl border text-sm font-semibold transition ${
+                className={`py-3 rounded-xl border text-sm font-semibold transition cursor-pointer ${
                   topUpAmountBDT === amt
                     ? "bg-cyan-500/20 border-cyan-500 text-cyan-300"
                     : "bg-slate-800/60 border-slate-700 text-slate-300 hover:border-slate-600"
@@ -186,12 +173,12 @@ function WalletContent() {
 
         <button
           onClick={handleInitTopUp}
-          disabled={loading}
+          disabled={topUpMutation.isPending}
           className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-slate-950 font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-500/20 transition disabled:opacity-50 text-sm cursor-pointer"
         >
-          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {loading ? "Redirecting to SSLCommerz..." : `Top Up ৳${topUpAmountBDT}`}
-          {!loading && <ExternalLink className="w-4 h-4" />}
+          {topUpMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+          {topUpMutation.isPending ? "Redirecting to SSLCommerz..." : `Top Up ৳${topUpAmountBDT}`}
+          {!topUpMutation.isPending && <ExternalLink className="w-4 h-4" />}
         </button>
 
         <div className="text-center text-xs text-slate-400 flex items-center justify-center gap-2">

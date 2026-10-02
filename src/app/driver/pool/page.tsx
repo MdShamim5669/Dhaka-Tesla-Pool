@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Car,
@@ -13,112 +12,31 @@ import {
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
-import { Pool } from "@/types/pool";
+import { useCurrentPool, usePoolAction } from "@/lib/hooks/useDriver";
 import { formatPaisaToBDT } from "@/lib/utils/format";
 
 export default function DriverPoolPage() {
-  const [pool, setPool] = useState<Pool | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // TanStack Query: Live polling for active pool status
+  const { data: pool, isLoading, isError, error, refetch } = useCurrentPool();
+  const poolActionMutation = usePoolAction();
 
-  const fetchCurrentPool = async () => {
-    try {
-      const res = await apiClient.get("/driver/pools/current");
-      setPool(res.data.data);
-    } catch {
-      // Mock demonstration pool matching PRD (Jashim's Bullet with Nusrat & Rafiq)
-      setPool({
-        id: "pool-bullet-demo-1",
-        teslaId: "tesla-bullet",
-        status: "ACCEPTED",
-        pickupZoneId: 1, // Banani
-        corridor: "North-East",
-        seatsOccupied: 2,
-        capacity: 3,
-        members: [
-          {
-            id: "pm-1",
-            poolId: "pool-bullet-demo-1",
-            rideRequestId: "req-nusrat-1",
-            seats: 1,
-            joinedAt: new Date().toISOString(),
-            rideRequest: {
-              id: "req-nusrat-1",
-              passengerId: "p1",
-              pickupZoneId: 1,
-              destZoneId: 2,
-              seats: 1,
-              status: "MATCHED",
-              distanceM: 3000,
-              estimatedFarePaisa: 10400,
-              finalFarePaisa: 8320,
-              paymentMethod: "TESLAPAY",
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-          },
-          {
-            id: "pm-2",
-            poolId: "pool-bullet-demo-1",
-            rideRequestId: "req-rafiq-2",
-            seats: 1,
-            joinedAt: new Date().toISOString(),
-            rideRequest: {
-              id: "req-rafiq-2",
-              passengerId: "p2",
-              pickupZoneId: 1,
-              destZoneId: 3,
-              seats: 1,
-              status: "MATCHED",
-              distanceM: 4000,
-              estimatedFarePaisa: 12200,
-              finalFarePaisa: 9760,
-              paymentMethod: "CASH",
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        ],
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCurrentPool();
-  }, []);
-
-  const handleAction = async (action: "arrive" | "start" | "complete" | "cancel") => {
+  const handleAction = (action: "arrive" | "start" | "complete" | "cancel") => {
     if (!pool) return;
     if (action === "cancel" && !confirm("Are you sure you want to cancel this pool trip?")) {
       return;
     }
 
-    setActionLoading(true);
-    setError(null);
-
-    try {
-      await apiClient.post(`/driver/pools/${pool.id}/${action}`);
-      await fetchCurrentPool();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError(`Failed to perform action: ${action}`);
-      }
-    } finally {
-      setActionLoading(false);
-    }
+    poolActionMutation.mutate({
+      poolId: pool.id,
+      action,
+    });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-400 gap-3">
         <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-        <p>Loading current pool status...</p>
+        <p>Loading current pool status from backend...</p>
       </div>
     );
   }
@@ -133,13 +51,19 @@ export default function DriverPoolPage() {
         </p>
         <Link
           href="/driver/requests"
-          className="mt-6 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl transition text-sm shadow-lg shadow-emerald-500/20"
+          className="mt-6 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl transition text-sm shadow-lg shadow-emerald-500/20 cursor-pointer"
         >
           View Requests
         </Link>
       </div>
     );
   }
+
+  const errorMessage = isError
+    ? error?.message
+    : poolActionMutation.isError
+    ? poolActionMutation.error?.message
+    : null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -155,18 +79,18 @@ export default function DriverPoolPage() {
         </div>
 
         <button
-          onClick={fetchCurrentPool}
-          className="p-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-xl transition"
+          onClick={() => refetch()}
+          className="p-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-xl transition cursor-pointer"
           title="Refresh Pool"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
-      {error && (
+      {errorMessage && (
         <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-sm flex items-center gap-2">
           <AlertCircle className="w-5 h-5 shrink-0" />
-          <span>{error}</span>
+          <span>{errorMessage}</span>
         </div>
       )}
 
@@ -251,10 +175,14 @@ export default function DriverPoolPage() {
           {pool.status === "ACCEPTED" && (
             <button
               onClick={() => handleAction("arrive")}
-              disabled={actionLoading}
+              disabled={poolActionMutation.isPending}
               className="flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-cyan-500/20 disabled:opacity-50 cursor-pointer"
             >
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+              {poolActionMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Navigation className="w-4 h-4" />
+              )}
               <span>Mark Arrived</span>
             </button>
           )}
@@ -263,10 +191,14 @@ export default function DriverPoolPage() {
           {(pool.status === "ACCEPTED" || pool.status === "DRIVER_ARRIVED") && (
             <button
               onClick={() => handleAction("start")}
-              disabled={actionLoading}
+              disabled={poolActionMutation.isPending}
               className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-500/20 disabled:opacity-50 cursor-pointer"
             >
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              {poolActionMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
               <span>Start Trip (Lock Fares)</span>
             </button>
           )}
@@ -275,10 +207,14 @@ export default function DriverPoolPage() {
           {pool.status === "STARTED" && (
             <button
               onClick={() => handleAction("complete")}
-              disabled={actionLoading}
+              disabled={poolActionMutation.isPending}
               className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3.5 rounded-xl transition text-sm shadow-lg shadow-emerald-500/20 disabled:opacity-50 cursor-pointer"
             >
-              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {poolActionMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
               <span>Complete & Settle</span>
             </button>
           )}
@@ -287,7 +223,7 @@ export default function DriverPoolPage() {
           {pool.status !== "STARTED" && (
             <button
               onClick={() => handleAction("cancel")}
-              disabled={actionLoading}
+              disabled={poolActionMutation.isPending}
               className="flex items-center justify-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-semibold py-3.5 rounded-xl transition text-sm disabled:opacity-50 cursor-pointer"
             >
               <XCircle className="w-4 h-4" />

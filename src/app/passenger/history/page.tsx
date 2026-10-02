@@ -1,55 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MapPin, Loader2, Navigation } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
-import { RideRequest } from "@/types/ride";
+import { MapPin, Loader2, Navigation, RefreshCw } from "lucide-react";
+import { useMyRides } from "@/lib/hooks/useRides";
 import { formatPaisaToBDT, formatDateTime } from "@/lib/utils/format";
 
 export default function RideHistoryPage() {
-  const [rides, setRides] = useState<RideRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    apiClient
-      .get("/rides")
-      .then((res) => {
-        setRides(res.data.data || []);
-      })
-      .catch(() => {
-        // Mock sample history for preview
-        setRides([
-          {
-            id: "ride-demo-1",
-            passengerId: "p1",
-            pickupZoneId: 1,
-            destZoneId: 2,
-            seats: 1,
-            status: "COMPLETED",
-            distanceM: 3000,
-            estimatedFarePaisa: 10400,
-            finalFarePaisa: 8320,
-            paymentMethod: "TESLAPAY",
-            createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-            updatedAt: new Date(Date.now() - 3600000 * 23).toISOString(),
-          },
-        ]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: rides = [], isLoading, refetch } = useMyRides();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">
-          Ride History
-        </h1>
-        <p className="text-slate-400 mt-1">
-          Review your past pooled and solo Tesla trips.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            Ride History
+          </h1>
+          <p className="text-slate-400 mt-1">
+            Review your past pooled and solo Tesla trips.
+          </p>
+        </div>
+
+        <button
+          onClick={() => refetch()}
+          className="p-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-xl transition cursor-pointer"
+          title="Refresh History"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center items-center py-20 text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
         </div>
@@ -89,8 +68,7 @@ export default function RideHistoryPage() {
                 <div className="flex items-center gap-2 text-sm text-white">
                   <MapPin className="w-4 h-4 text-cyan-400" />
                   <span>
-                    Pickup Zone {ride.pickupZoneId} → Destination Zone{" "}
-                    {ride.destZoneId}
+                    Pickup Zone #{ride.pickupZoneId} → Destination Zone #{ride.destZoneId}
                   </span>
                   <span className="text-slate-500 text-xs">
                     ({ride.seats} seat{ride.seats > 1 ? "s" : ""})

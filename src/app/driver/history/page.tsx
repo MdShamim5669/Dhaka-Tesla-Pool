@@ -1,53 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { History, MapPin, Users, Loader2 } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
-import { Pool } from "@/types/pool";
+import { History, MapPin, Users, Loader2, RefreshCw } from "lucide-react";
+import { useDriverPoolHistory } from "@/lib/hooks/useDriver";
 import { formatDateTime } from "@/lib/utils/format";
 
 export default function DriverHistoryPage() {
-  const [pools, setPools] = useState<Pool[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    apiClient
-      .get("/driver/pools")
-      .then((res) => {
-        setPools(res.data.data || []);
-      })
-      .catch(() => {
-        // Mock sample history for preview
-        setPools([
-          {
-            id: "pool-demo-completed-1",
-            teslaId: "bullet",
-            status: "COMPLETED",
-            pickupZoneId: 1,
-            corridor: "North-East",
-            seatsOccupied: 2,
-            capacity: 3,
-            startedAt: new Date(Date.now() - 3600000 * 25).toISOString(),
-            completedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-            members: [],
-          },
-        ]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: pools = [], isLoading, refetch } = useDriverPoolHistory();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">
-          Driver Trip History
-        </h1>
-        <p className="text-slate-400 mt-1">
-          Review your completed pool trips and capacity efficiency.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            Driver Trip History
+          </h1>
+          <p className="text-slate-400 mt-1">
+            Review your completed pool trips and capacity efficiency.
+          </p>
+        </div>
+
+        <button
+          onClick={() => refetch()}
+          className="p-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-xl transition cursor-pointer"
+          title="Refresh History"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center items-center py-20 text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
         </div>
