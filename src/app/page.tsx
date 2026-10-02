@@ -20,6 +20,8 @@ import {
 import { formatPaisaToBDT } from "@/lib/utils/format";
 import { CorridorRouteMap } from "@/components/shared/CorridorRouteMap";
 import { TeslaCabinView } from "@/components/shared/TeslaCabinView";
+import { GoogleMapView } from "@/components/shared/GoogleMapView";
+import { TeslaReserveSection } from "@/components/shared/TeslaReserveSection";
 
 const ZONES = [
   { id: 1, name: "Banani", corridor: "North-East" },
@@ -42,6 +44,7 @@ export default function Home() {
   const [rideType, setRideType] = useState<"POOL" | "SOLO">("POOL");
   const [paymentMethod, setPaymentMethod] = useState<"TESLAPAY" | "CASH">("TESLAPAY");
   const [showTelemetryDrawer, setShowTelemetryDrawer] = useState<boolean>(false);
+  const [mapTab, setMapTab] = useState<"google" | "radar">("google");
 
   // Exact hand-verified pricing calculation from PRD (base: ৳50, perKm: ৳18, 20% discount)
   const estimatedKm = Math.abs(destZoneId - pickupZoneId) * 1.5 + 2;
@@ -386,26 +389,70 @@ export default function Home() {
               className="text-xs font-bold text-emerald-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
             >
               <Compass className="w-3.5 h-3.5" />
-              <span>{showTelemetryDrawer ? "Hide Corridor Radar & Cabin Preview" : "View Live Dhaka Corridor Radar & Cabin Seat Map"}</span>
+              <span>{showTelemetryDrawer ? "Hide Live Route Map & Cabin Preview" : "View Live Google Route Map & Tesla Cabin Seat Preview"}</span>
             </button>
           </div>
 
           {showTelemetryDrawer && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 pt-6 border-t border-slate-100">
-              <CorridorRouteMap
-                pickupZone={pickupZone}
-                destZone={destZone}
-                distanceKm={estimatedKm}
-                discountPercentage={20}
-              />
-              <TeslaCabinView
-                capacity={3}
-                occupiedSeats={0}
-                selectedSeats={seats}
-                driverName="Jashim"
-                interactive={true}
-                onSelectSeats={(s) => setSeats(s)}
-              />
+            <div className="mt-6 pt-6 border-t border-slate-100 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500">Live Route Visualizer</span>
+                <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setMapTab("google")}
+                    className={`px-3 py-1 rounded-lg transition ${
+                      mapTab === "google"
+                        ? "bg-emerald-500 text-white shadow-sm"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    Google Map
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMapTab("radar")}
+                    className={`px-3 py-1 rounded-lg transition ${
+                      mapTab === "radar"
+                        ? "bg-slate-900 text-white shadow-sm"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    Cyber Radar
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  {mapTab === "google" ? (
+                    <GoogleMapView
+                      pickupZoneId={pickupZoneId}
+                      destZoneId={destZoneId}
+                      distanceKm={estimatedKm}
+                      driverName="Jashim"
+                      vehicleName="Bullet"
+                      height="h-[360px]"
+                    />
+                  ) : (
+                    <CorridorRouteMap
+                      pickupZone={pickupZone}
+                      destZone={destZone}
+                      distanceKm={estimatedKm}
+                      discountPercentage={20}
+                    />
+                  )}
+                </div>
+
+                <TeslaCabinView
+                  capacity={3}
+                  occupiedSeats={0}
+                  selectedSeats={seats}
+                  driverName="Jashim"
+                  interactive={true}
+                  onSelectSeats={(s) => setSeats(s)}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -497,6 +544,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* "Plan for later" / Tesla Reserve Section matching user reference */}
+      <TeslaReserveSection />
 
       {/* "Driving You Toward Your Destination" Section matching reference */}
       <section className="py-20 bg-slate-100/70 border-t border-slate-200">

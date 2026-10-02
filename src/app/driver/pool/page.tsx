@@ -15,6 +15,7 @@ import {
 import { useCurrentPool, usePoolAction } from "@/lib/hooks/useDriver";
 import { formatPaisaToBDT } from "@/lib/utils/format";
 import { TeslaCabinView } from "@/components/shared/TeslaCabinView";
+import { GoogleMapView } from "@/components/shared/GoogleMapView";
 
 export default function DriverPoolPage() {
   const { data: pool, isLoading, isError, error, refetch } = useCurrentPool();
@@ -105,8 +106,18 @@ export default function DriverPoolPage() {
 
       {/* Grid: Cockpit Cabin Layout on Left, Controls on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left: Cabin & Passengers (7 cols) */}
+        {/* Left: Google Map, Cabin & Passengers (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
+          <GoogleMapView
+            pickupZoneId={pool.pickupZoneId}
+            destZoneId={pool.members[0]?.rideRequest?.destZoneId || 2}
+            distanceKm={3.5}
+            showTeslaMarker={true}
+            driverName="Jashim"
+            vehicleName="Bullet"
+            height="h-[320px]"
+          />
+
           <TeslaCabinView
             capacity={pool.capacity}
             occupiedSeats={pool.seatsOccupied}

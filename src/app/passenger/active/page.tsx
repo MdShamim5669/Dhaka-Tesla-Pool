@@ -16,6 +16,7 @@ import { useRideDetail, useCancelRide } from "@/lib/hooks/useRides";
 import { RideStatus } from "@/types/ride";
 import { formatPaisaToBDT } from "@/lib/utils/format";
 import { TeslaCabinView } from "@/components/shared/TeslaCabinView";
+import { GoogleMapView } from "@/components/shared/GoogleMapView";
 
 const STATUS_STEPS: { status: RideStatus; label: string; desc: string }[] = [
   { status: "REQUESTED", label: "Requested", desc: "Corridor matcher scanning compatible Teslas" },
@@ -206,6 +207,19 @@ export default function ActiveTripPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Real Google Maps In-Transit Route Tracker */}
+      <div className="space-y-3">
+        <GoogleMapView
+          pickupZoneId={ride.pickupZoneId}
+          destZoneId={ride.destZoneId}
+          distanceKm={ride.distanceM / 1000}
+          showTeslaMarker={true}
+          driverName="Jashim"
+          vehicleName="Bullet"
+          height="h-[400px]"
+        />
       </div>
 
       {/* Grid: Driver Card & Cabin View */}
