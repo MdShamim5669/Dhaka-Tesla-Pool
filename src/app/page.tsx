@@ -22,6 +22,8 @@ import { CorridorRouteMap } from "@/components/shared/CorridorRouteMap";
 import { TeslaCabinView } from "@/components/shared/TeslaCabinView";
 import { GoogleMapView } from "@/components/shared/GoogleMapView";
 import { TeslaReserveSection } from "@/components/shared/TeslaReserveSection";
+import { DriveWithUsSection } from "@/components/shared/DriveWithUsSection";
+import { Typewriter } from "@/components/shared/Typewriter";
 
 const ZONES = [
   { id: 1, name: "Banani", corridor: "North-East" },
@@ -142,7 +144,22 @@ export default function Home() {
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.15]">
               Comfortable Rides, <br />
               <span className="text-white">Trusted Service</span> <br />
-              <span className="text-emerald-400">Every Time</span>
+              <span className="text-emerald-400">
+                <Typewriter
+                  backspace="all"
+                  words={[
+                    "Every Time",
+                    "Split the Fare",
+                    "Zero Traffic Stress",
+                    "Locked at 20% Off",
+                    "Model 3 Luxury",
+                  ]}
+                  typingSpeed={70}
+                  deletingSpeed={40}
+                  delayBetweenWords={1800}
+                  cursorClassName="text-emerald-400"
+                />
+              </span>
             </h1>
 
             <p className="text-slate-300 text-base sm:text-lg max-w-lg font-normal leading-relaxed">
@@ -547,6 +564,9 @@ export default function Home() {
 
       {/* "Plan for later" / Tesla Reserve Section matching user reference */}
       <TeslaReserveSection />
+
+      {/* "Drive when you want, make what you need" Section matching user reference */}
+      <DriveWithUsSection />
 
       {/* "Driving You Toward Your Destination" Section matching reference */}
       <section className="py-20 bg-slate-100/70 border-t border-slate-200">

@@ -210,137 +210,110 @@ function RequestRideInner() {
 
       {/* Main Booking Cockpit (7 Cols Left Form + 5 Cols Right Telemetry) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Booking Controls (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="glass-panel-elevated p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-2xl space-y-6">
+        {/* Left Column: Booking Controls (7 Cols) - Compact Executive Card */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="glass-panel-elevated p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-xl space-y-3.5">
             {/* Header with Booking Mode Toggle */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                  <Car className="w-5 h-5" />
+                <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  <Car className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-white tracking-wide">
+                  <h2 className="text-sm font-bold text-white tracking-wide">
                     Ride Configuration
                   </h2>
-                  <p className="text-[11px] text-slate-400">
-                    Custom corridor dispatch parameters
+                  <p className="text-[10px] text-slate-400">
+                    Corridor dispatch parameters
                   </p>
                 </div>
               </div>
 
-              {/* Dispatch Switcher: Now vs Reserve */}
-              <div className="inline-flex rounded-2xl bg-slate-950 p-1 border border-slate-800 text-xs font-bold shadow-inner">
+              {/* Compact Dispatch Switcher: Now vs Reserve */}
+              <div className="inline-flex rounded-xl bg-slate-950 p-0.5 border border-slate-800 text-[11px] font-bold shadow-inner">
                 <button
                   type="button"
                   onClick={() => setBookingMode("NOW")}
-                  className={`px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer ${
                     bookingMode === "NOW"
-                      ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-black"
+                      ? "bg-cyan-500 text-slate-950 shadow-sm font-black"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  <Zap className="w-3.5 h-3.5 fill-current" />
-                  <span>Dispatch Now</span>
+                  <Zap className="w-3 h-3 fill-current" />
+                  <span>Now</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setBookingMode("RESERVE")}
-                  className={`px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer ${
                     bookingMode === "RESERVE"
-                      ? "bg-[#95B8C0] text-slate-950 shadow-md shadow-[#95B8C0]/30 font-black"
+                      ? "bg-[#95B8C0] text-slate-950 shadow-sm font-black"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Tesla Reserve</span>
+                  <Calendar className="w-3 h-3" />
+                  <span>Reserve</span>
                 </button>
               </div>
             </div>
 
-            {/* Plan for Later / Tesla Reserve Box */}
+            {/* Plan for Later / Tesla Reserve Box - Compact */}
             {bookingMode === "RESERVE" && (
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-[#95B8C0]/20 via-[#95B8C0]/10 to-transparent border border-[#95B8C0]/40 space-y-4 animate-in fade-in duration-300">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#95B8C0]" />
-                    <span className="text-xs font-black uppercase tracking-wider text-white">
-                      Tesla Reserve Schedule
-                    </span>
-                  </div>
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#95B8C0]/20 text-[#95B8C0] border border-[#95B8C0]/30 font-bold">
-                    Zero-Fee Cancel (60m prior)
+              <div className="p-3 rounded-xl bg-[#95B8C0]/15 border border-[#95B8C0]/35 space-y-2 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-bold text-white flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-[#95B8C0]" />
+                    <span>Scheduled Departure</span>
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#95B8C0]/20 text-[#95B8C0] font-bold">
+                    Free Cancel (60m)
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                      Departure Date
+                    <label className="text-[10px] font-semibold text-slate-300 block mb-0.5">
+                      Date
                     </label>
-                    <div className="relative">
-                      <input
-                        type="date"
-                        value={reserveDate}
-                        min={new Date().toISOString().split("T")[0]}
-                        onChange={(e) => setReserveDate(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#95B8C0] cursor-pointer shadow-inner"
-                      />
-                    </div>
+                    <input
+                      type="date"
+                      value={reserveDate}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => setReserveDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#95B8C0] cursor-pointer"
+                    />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                      Departure Time
+                    <label className="text-[10px] font-semibold text-slate-300 block mb-0.5">
+                      Time
                     </label>
-                    <div className="relative">
-                      <input
-                        type="time"
-                        value={reserveTime}
-                        onChange={(e) => setReserveTime(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-[#95B8C0] cursor-pointer shadow-inner"
-                      />
-                    </div>
+                    <input
+                      type="time"
+                      value={reserveTime}
+                      onChange={(e) => setReserveTime(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-white focus:outline-none focus:border-[#95B8C0] cursor-pointer"
+                    />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-[#95B8C0]/20 text-[11px] text-slate-300">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>15 min extra complimentary wait time</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-[#95B8C0] shrink-0" />
-                    <span>Guaranteed electric Model 3 dispatch</span>
-                  </div>
+                <div className="text-[10px] text-slate-300 flex items-center gap-1.5 pt-1 border-t border-[#95B8C0]/20">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>15 min extra complimentary wait time included.</span>
                 </div>
               </div>
             )}
 
-            {/* Zone Pickers with Interactive Swap */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Corridor Origin & Destination
-                </span>
-                <button
-                  type="button"
-                  onClick={handleSwapZones}
-                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 cursor-pointer py-1 px-2.5 rounded-lg hover:bg-cyan-500/10 transition border border-transparent hover:border-cyan-500/20"
-                >
-                  <ArrowUpDown className="w-3.5 h-3.5" />
-                  <span>Swap Direction</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Pickup Zone Card */}
-                <div className="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 space-y-2 hover:border-cyan-500/40 transition">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5" />
-                      Pickup Point
+            {/* Zone Pickers - Compact Unified Route Box */}
+            <div className="relative bg-slate-900/70 border border-slate-800 rounded-xl p-3 space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                {/* Pickup Zone */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> Pickup Point
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-400 px-2 py-0.5 rounded bg-slate-800">
+                    <span className="text-[9px] text-slate-400 px-1.5 py-0.2 rounded bg-slate-800">
                       {pickupZone.corridor}
                     </span>
                   </div>
@@ -348,7 +321,7 @@ function RequestRideInner() {
                     value={pickupZoneId}
                     disabled={zonesLoading}
                     onChange={(e) => setPickupZoneId(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-cyan-400 cursor-pointer"
+                    className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-cyan-400 cursor-pointer"
                   >
                     {zones.map((zone) => (
                       <option key={zone.id} value={zone.id}>
@@ -356,19 +329,15 @@ function RequestRideInner() {
                       </option>
                     ))}
                   </select>
-                  <div className="text-[11px] text-slate-400 truncate">
-                    Landmark: <span className="text-slate-300">{pickupZone.landmark}</span>
-                  </div>
                 </div>
 
-                {/* Destination Zone Card */}
-                <div className="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 space-y-2 hover:border-emerald-500/40 transition">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5" />
-                      Destination Point
+                {/* Destination Zone */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> Destination Point
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-400 px-2 py-0.5 rounded bg-slate-800">
+                    <span className="text-[9px] text-slate-400 px-1.5 py-0.2 rounded bg-slate-800">
                       {destZone.corridor}
                     </span>
                   </div>
@@ -376,7 +345,7 @@ function RequestRideInner() {
                     value={destZoneId}
                     disabled={zonesLoading}
                     onChange={(e) => setDestZoneId(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-emerald-400 cursor-pointer"
+                    className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-white font-bold text-xs focus:outline-none focus:border-emerald-400 cursor-pointer"
                   >
                     {zones.map((zone) => (
                       <option key={zone.id} value={zone.id}>
@@ -384,190 +353,166 @@ function RequestRideInner() {
                       </option>
                     ))}
                   </select>
-                  <div className="text-[11px] text-slate-400 truncate">
-                    Landmark: <span className="text-slate-300">{destZone.landmark}</span>
-                  </div>
                 </div>
+              </div>
+
+              {/* Direction Swap Button */}
+              <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-[10px] text-slate-400">
+                <span className="truncate">
+                  {pickupZone.landmark} → {destZone.landmark}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSwapZones}
+                  className="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 cursor-pointer py-0.5 px-2 rounded hover:bg-cyan-500/10 transition"
+                >
+                  <ArrowUpDown className="w-3 h-3" />
+                  <span>Swap</span>
+                </button>
               </div>
             </div>
 
-            {/* Passenger Seats Selector (Luxury Cabin Cards) */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Passenger Seats Required
+            {/* Passenger Seats Selector - Compact */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <label className="font-bold uppercase tracking-wider text-slate-400">
+                  Passenger Seats
                 </label>
-                <span className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" />
-                  Tesla Model 3 Capacity: 3 Seats
+                <span className="text-cyan-400 font-semibold text-[10px] flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  Tesla Model 3 Capacity: 3
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 {[
-                  { count: 1, title: "1 Seat", desc: "Single Passenger", tag: "Solo / Co-Pool" },
-                  { count: 2, title: "2 Seats", desc: "Two Passengers", tag: "Duo Shared" },
-                  { count: 3, title: "3 Seats", desc: "Entire Cabin", tag: "Private Pool" },
+                  { count: 1, label: "1 Seat", tag: "Solo / Co-Pool" },
+                  { count: 2, label: "2 Seats", tag: "Duo Shared" },
+                  { count: 3, label: "3 Seats", tag: "Private Cabin" },
                 ].map((tier) => (
                   <button
                     key={tier.count}
                     type="button"
                     onClick={() => setSeats(tier.count)}
-                    className={`p-4 rounded-2xl border text-left transition relative cursor-pointer ${
+                    className={`py-2 px-2.5 rounded-xl border text-center transition cursor-pointer ${
                       seats === tier.count
-                        ? "bg-gradient-to-br from-cyan-950/60 to-slate-900 border-cyan-400 text-white shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-400"
+                        ? "bg-cyan-500/20 border-cyan-400 text-white shadow-sm ring-1 ring-cyan-400"
                         : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-base font-black text-white">{tier.title}</span>
-                      <span
-                        className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                          seats === tier.count
-                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                            : "bg-slate-800 text-slate-400"
-                        }`}
-                      >
-                        {tier.tag}
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-400">{tier.desc}</div>
-                    <div className="text-[11px] font-bold text-emerald-400 mt-2">
-                      {formatPaisaToBDT(Math.round(pooledFarePaisa / seats) * tier.count)}
+                    <div className="text-xs font-black text-white">{tier.label}</div>
+                    <div className="text-[10px] text-cyan-300 font-semibold opacity-90">
+                      {tier.tag}
                     </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Payment Method Selector */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+            {/* Payment Method Selector - Compact */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Payment Channel
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod("TESLAPAY")}
-                  className={`p-4 rounded-2xl border text-left transition flex items-start gap-3.5 cursor-pointer ${
+                  className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
                     paymentMethod === "TESLAPAY"
-                      ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-400"
+                      ? "bg-cyan-500/15 border-cyan-400 text-cyan-300 ring-1 ring-cyan-400"
                       : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
                   }`}
                 >
-                  <div className="p-3 rounded-xl bg-cyan-500/10 text-cyan-400 shrink-0 mt-0.5">
-                    <Wallet className="w-5 h-5" />
+                  <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 shrink-0">
+                    <Wallet className="w-4 h-4" />
                   </div>
-                  <div>
-                    <div className="font-bold text-white flex items-center gap-2">
-                      <span>TeslaPay Escrow</span>
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-bold">
-                        RECOMMENDED
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      Instant digital lock • Zero driver cash friction
-                    </div>
+                  <div className="truncate">
+                    <div className="font-bold text-white text-xs">TeslaPay</div>
+                    <div className="text-[10px] text-emerald-400 font-medium">Escrow Cashless</div>
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod("CASH")}
-                  className={`p-4 rounded-2xl border text-left transition flex items-start gap-3.5 cursor-pointer ${
+                  className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
                     paymentMethod === "CASH"
-                      ? "bg-emerald-500/15 border-emerald-400 text-emerald-300 shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400"
+                      ? "bg-emerald-500/15 border-emerald-400 text-emerald-300 ring-1 ring-emerald-400"
                       : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
                   }`}
                 >
-                  <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 shrink-0 mt-0.5">
-                    <Banknote className="w-5 h-5" />
+                  <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                    <Banknote className="w-4 h-4" />
                   </div>
-                  <div>
-                    <div className="font-bold text-white">Cash Direct</div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      Pay driver upon corridor arrival in cash
-                    </div>
+                  <div className="truncate">
+                    <div className="font-bold text-white text-xs">Cash Direct</div>
+                    <div className="text-[10px] text-slate-400">Pay on arrival</div>
                   </div>
                 </button>
               </div>
             </div>
 
-            {/* Price Breakdown Banner HUD */}
-            <div className="p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-cyan-500/30 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />
+            {/* Price Breakdown Banner HUD - Sleek & Compact */}
+            <div className="p-3.5 rounded-xl bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border border-cyan-500/30 shadow-md flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-0.5">
+                  <Sparkles className="w-3 h-3" />
+                  <span>Locked Fare (20% Off)</span>
+                  {estimateLoading && <Loader2 className="w-3 h-3 animate-spin text-cyan-400 ml-1" />}
+                </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Guaranteed Pool Fare (20% Off Applied)</span>
-                    {estimateLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400 ml-1" />}
+                <div className="flex items-baseline gap-2">
+                  <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    {formatPaisaToBDT(pooledFarePaisa)}
                   </div>
-
-                  <div className="flex items-baseline gap-3">
-                    <div className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                      {formatPaisaToBDT(pooledFarePaisa)}
-                    </div>
-                    <div className="text-xs sm:text-sm text-slate-400">
-                      Standard Solo:{" "}
-                      <span className="line-through text-slate-500">
-                        {formatPaisaToBDT(soloFarePaisa)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-emerald-300 font-semibold mt-2 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>You save {formatPaisaToBDT(savingsPaisa)} on this Dhaka corridor route</span>
+                  <div className="text-[11px] text-slate-500 line-through">
+                    {formatPaisaToBDT(soloFarePaisa)}
                   </div>
                 </div>
 
-                <div className="sm:text-right shrink-0">
-                  <div className="inline-block px-3.5 py-1.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-black">
-                    LOCKED PRICING
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-2">
-                    {seats} Seat{seats > 1 ? "s" : ""} • ~{distanceKm.toFixed(1)} km
-                  </div>
+                <div className="text-[10px] text-emerald-300 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  <span>Save {formatPaisaToBDT(savingsPaisa)} • ~{distanceKm.toFixed(1)} km</span>
                 </div>
               </div>
 
-              {/* Exact Formula Breakdown Tooltip */}
-              <div className="mt-4 pt-4 border-t border-slate-800 text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2">
-                <span>Base: ৳50.00 • Rate: ৳18.00/km • Integer Paisa Accuracy</span>
-                <span className="flex items-center gap-1 text-slate-400">
-                  <Lock className="w-3 h-3 text-cyan-400" />
-                  Anti-Surge Guarantee
+              <div className="text-right shrink-0">
+                <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black">
+                  20% OFF
                 </span>
+                <div className="text-[10px] text-slate-400 mt-1 flex items-center justify-end gap-1">
+                  <Lock className="w-2.5 h-2.5 text-cyan-400" />
+                  <span>No Surge</span>
+                </div>
               </div>
             </div>
 
-            {/* Confirm Ride Request Button */}
+            {/* Confirm Ride Request Button - Sleek */}
             <button
               onClick={handleBooking}
               disabled={createRideMutation.isPending || pickupZoneId === destZoneId}
-              className={`w-full py-4.5 rounded-2xl font-black text-base shadow-2xl transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer ${
+              className={`w-full py-3.5 rounded-xl font-black text-sm shadow-xl transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer ${
                 bookingMode === "RESERVE"
-                  ? "bg-[#95B8C0] hover:bg-[#83a8b0] text-slate-950 shadow-[0_0_35px_rgba(149,184,192,0.4)] hover:scale-[1.01]"
-                  : "bg-gradient-to-r from-cyan-400 via-emerald-400 to-cyan-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 shadow-[0_0_35px_rgba(6,182,212,0.4)] hover:scale-[1.01]"
+                  ? "bg-[#95B8C0] hover:bg-[#83a8b0] text-slate-950 shadow-[0_0_25px_rgba(149,184,192,0.4)]"
+                  : "bg-gradient-to-r from-cyan-400 via-emerald-400 to-cyan-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 shadow-[0_0_25px_rgba(6,182,212,0.4)]"
               }`}
             >
               {createRideMutation.isPending ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Locking Tesla & Generating Trip Idempotency...</span>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Locking Tesla & Generating Idempotency...</span>
                 </>
               ) : bookingMode === "RESERVE" ? (
                 <>
                   <span>Confirm Tesla Reserve for {reserveDate} ({reserveTime})</span>
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-4 h-4" />
                 </>
               ) : (
                 <>
                   <span>Confirm Tesla Pool Dispatch</span>
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
